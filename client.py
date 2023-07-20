@@ -44,17 +44,19 @@ def connect_server():
         else:
             break
 
+    # Ask user for the name to show in the dictionary
+    name = input("Enter your name to show in the dictionary: ")
+    # Create dictionary
+    dictionary = {}
+    dictionary["name"] = name
+    dictionary["format"] = pickling_format
+    dictionary = dict(sorted(dictionary.items()))
+
     # Send the pickling format to server
     server_socket.sendall(pickling_format.encode())
 
     # Print Server response message after sending pickling format
     print(server_socket.recv(1024).decode())
-
-    # Create dictionary
-    dictionary = {}
-    dictionary["name"] = "Tom"
-    dictionary["format"] = pickling_format
-    dictionary = dict(sorted(dictionary.items()))
 
     # Send dictionary to the server
     if pickling_format == "binary":
