@@ -23,6 +23,9 @@ class Server:
         server_socket.listen(5)
         print(f"Server started on {host}.")
         while True:
+            # Wait for a client to connect with a timeout of 20 seconds
+            print("Waiting for client connection...")
+            server_socket.settimeout(20)
             # Accept the client
             client, address = server_socket.accept()
             print(f"Connection from {address} has been established!")
