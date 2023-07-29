@@ -23,61 +23,68 @@ class Server:
         server_socket.listen(5)
         print(f"Server started on {host}.")
         while True:
-            # Wait for a client to connect with a timeout of 20 seconds
-            print("Waiting for client connection...")
-            server_socket.settimeout(20)
-            # Accept the client
-            client, address = server_socket.accept()
-            print(f"Connection from {address} has been established!")
+            try:
+                # Wait for a client to connect with a timeout of 20 seconds
+                print("Waiting for client connection...")
+                server_socket.settimeout(20)
+                # Accept the client
+                client, address = server_socket.accept()
+                print(f"Connection from {address} has been established!")
 
-            # Ask user for the option to print the content
-            while True:
-                print_option = input(
-                    "Please select option to print the contents of the sent items (screen/file) :").lower()
-                if not self.validate_print_option(print_option):
-                    print("Invalid option.")
+                # Ask user for the option to print the content
+                while True:
+                    print_option = input(
+                        "Please select option to print the contents of the sent items (screen/file) :").lower()
+                    if not self.validate_print_option(print_option):
+                        print("Invalid option.")
+                    else:
+                        break
+
+                # Receive client's choice on the pickling format of the dictionary
+                pickling_format = client.recv(1024).decode()
+
+                # Send Response message to the client after receiving pickling format
+                msg = "Server received pickling format."
+                client.sendall(msg.encode())
+
+                # Receive serialised dictionary from the client
+                if pickling_format == "binary":
+                    self.receive_dictionary_binary(client, print_option)
+                elif pickling_format == "json":
+                    self.receive_dictionary_json(client, print_option)
+                elif pickling_format == "xml":
+                    self.receive_dictionary_xml(client, print_option)
+
+                # Send Response message to the client after recevied dictionary
+                msg = "Server received dictionary."
+                client.sendall(msg.encode())
+
+                # Receive encrypt option from client
+                encrypt_option = client.recv(1024).decode()
+
+                if encrypt_option == "yes":
+                    # Send the encrption key to the client if the encrypt option is yes
+                    key = Fernet.generate_key()
+                    client.sendall(key)
                 else:
-                    break
+                    # Send a dummy key to the client if the encrypt option is no
+                    key = "empty key"
+                    client.sendall(key.encode())
 
-            # Receive client's choice on the pickling format of the dictionary
-            pickling_format = client.recv(1024).decode()
+                # Receive text file from client
+                self.receive_text_file(
+                    client, print_option, encrypt_option, key)
 
-            # Send Response message to the client after receiving pickling format
-            msg = "Server received pickling format."
-            client.sendall(msg.encode())
+                # Send Response message to the client after receiving text file
+                msg = "Server received Text file."
+                client.sendall(msg.encode())
 
-            # Receive serialised dictionary from the client
-            if pickling_format == "binary":
-                self.receive_dictionary_binary(client, print_option)
-            elif pickling_format == "json":
-                self.receive_dictionary_json(client, print_option)
-            elif pickling_format == "xml":
-                self.receive_dictionary_xml(client, print_option)
+                client.close()
 
-            # Send Response message to the client after recevied dictionary
-            msg = "Server received dictionary."
-            client.sendall(msg.encode())
-
-            # Receive encrypt option from client
-            encrypt_option = client.recv(1024).decode()
-
-            if encrypt_option == "yes":
-                # Send the encrption key to the client if the encrypt option is yes
-                key = Fernet.generate_key()
-                client.sendall(key)
-            else:
-                # Send a dummy key to the client if the encrypt option is no
-                key = "empty key"
-                client.sendall(key.encode())
-
-            # Receive text file from client
-            self.receive_text_file(client, print_option, encrypt_option, key)
-
-            # Send Response message to the client after receiving text file
-            msg = "Server received Text file."
-            client.sendall(msg.encode())
-
-            client.close()
+            except socket.timeout:
+                print("Timeout expired. Closing server socket.")
+                server_socket.close()
+            break
 
     @staticmethod
     def validate_print_option(print_option):
